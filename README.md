@@ -12,3 +12,4 @@ python ../src/inference_model.py ./model/best_model.pt ./hypers.yaml ./data/stru
 ```
 
 The folders adaptive and fixed difference in terms of the energy reference used.
+
