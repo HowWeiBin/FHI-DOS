@@ -1,6 +1,11 @@
 # FHI-DOS
 
-Contains a python workflow capable of training a machine learning model from the output files of FHI-AIMS. The directory FHI-outputs comprise of folders which contain the FHI output of each structure in the training set based on hyperparameters defined in a file 'hypers.yaml'. The training script would read the process the data from the FHI-AIMS output, generating SOAP features and DOS targets, to train a fully connected neural network capable of predicting the electronic density of states of a structure, gridwise, in a user-defined energy window. To integrate the workflow for both the adaptive energy reference and fixed energy reference, the DOS targets will be computed and stored as Cubic Hermite Splines. 
+Contains a python workflow capable of training a machine learning model from the output files of FHI-AIMS. The directory FHI-outputs comprise of folders which contain the FHI output of each structure in the training set based on hyperparameters defined in a file 'hypers.yaml'. 
+
+# Overall Workflow
+The training script would first process the data from the FHI-AIMS output, generating SOAP features and DOS targets, to train a fully connected neural network capable of predicting the electronic density of states of a structure, gridwise, in a user-defined energy window. To integrate the workflow for both the adaptive energy reference and fixed energy reference, the DOS targets will be computed and stored as Cubic Hermite Splines. 
+
+The inference script would take as input, the .xyz of a set of inference structures, generate SOAP features from them and generate predictions based on a trained model. 
 
 ## Installing Dependencies
 
