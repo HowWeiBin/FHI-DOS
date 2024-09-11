@@ -5,7 +5,7 @@ Contains a python workflow capable of training a machine learning model from the
 # Overall Workflow
 The training script would first process the data from the FHI-AIMS output, generating SOAP features and DOS targets, to train a fully connected neural network capable of predicting the electronic density of states of a structure, gridwise, in a user-defined energy window. To integrate the workflow for both the adaptive energy reference and fixed energy reference, the DOS targets will be computed and stored as Cubic Hermite Splines. 
 
-The inference script would take as input, the .xyz of a set of inference structures, generate SOAP features from them and generate predictions based on a trained model. 
+The inference script would take as input, the .xyz of a set of inference structures, generate SOAP features from them and uses them as inputs to generate predictions of the electronic density of states based on a trained model. 
 
 ## Installing Dependencies
 
