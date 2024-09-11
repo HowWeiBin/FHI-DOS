@@ -1,17 +1,16 @@
-import json
 import os
 import argparse
 import ase
 import ase.io
 from scipy.interpolate import CubicHermiteSpline
-import tqdm
 import rascaline
 import yaml
 import torch
 from torch.utils.data import DataLoader, BatchSampler, RandomSampler
 import time
+import _codecs
 
-from utils import * 
+from utils import *
 from AtomicDataset import *
 from model import *
 
@@ -20,33 +19,22 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-            "FHI_output_path",
-            help="Path to a directory with folders containing FHI outputs",
-            type=str,
-        )
-
-    parser.add_argument(
-            "model_output",
-            help="Path to directory to save training outputs",
-            type=str,
-        )
-
-    parser.add_argument(
             "hypers_path",
             help="Path to hyperparameters .yaml file",
             type=str,
         )
 
     args = parser.parse_args()
+    with open(args.hypers_path, "r") as f:
+        TOTAL_HYPERS = yaml.safe_load(f)
 
-    dataset_directory = args.FHI_output_path
-    output_directory = args.model_output
-    try: 
+    dataset_directory = TOTAL_HYPERS['PATH_HYPERS']['FHI_OUTPUTS_PATH']
+    output_directory = TOTAL_HYPERS['PATH_HYPERS']['MODEL_OUTPUT_PATH']
+    try:
         os.mkdir(f"{output_directory}")
     except:
         None
-    with open(args.hypers_path, "r") as f:
-        TOTAL_HYPERS = yaml.safe_load(f)
+    
 
     n_structures = len(os.listdir(dataset_directory))
 
@@ -60,8 +48,11 @@ def main():
 
     if SOAP_saved and splines_saved and structures_saved:
         print ('Using precalculated Splines and SOAP')
-        structure_soap = torch.load(f"{output_directory}/data/structural_soap.pt")
-        structure_splines = torch.load(f"{output_directory}/data/total_splines.pt")
+        try:
+            structure_soap = torch.load(f"{output_directory}/data/structural_soap.pt", weights_only = True)
+        except:
+            structure_soap = np.load(f"{output_directory}/data/structural_soap.pt", allow_pickle = True)
+        structure_splines = torch.load(f"{output_directory}/data/total_splines.pt", weights_only = True)
         structures = ase.io.read(f"{output_directory}/data/structures.xyz", ":")
         n_structures = len(structures)
         n_atoms = torch.tensor([len(i) for i in structures])
@@ -138,7 +129,7 @@ def main():
             for j, i in enumerate(eigenenergies):
                 eigenenergy_i = torch.tensor(i) - Ef[j]
                 adjusted_eigenenergies.append(eigenenergy_i)
-            eigenenergies = adjusted_eigenenergies 
+            eigenenergies = adjusted_eigenenergies
         elif TOTAL_HYPERS['DOS_HYPERS']['REFERENCE'] == 'HARTREE':
             pass
         else:
@@ -161,7 +152,7 @@ def main():
         spline_positions = lower_bound + torch.arange(n_points)*dx
         structure_splines = []
 
-        for j, i in enumerate(tqdm.tqdm(eigenenergies)):
+        for j, i in enumerate(eigenenergies):
             def value_fn(x):
                 l_dos_E = torch.sum(torch.exp(-0.5*((x - i.view(-1,1))/sigma)**2), dim = 0) * 2 * normalization[j]
                 return l_dos_E
@@ -182,23 +173,22 @@ def main():
 
         calculator = rascaline.SoapPowerSpectrum(**SOAP_HYPERS)
         R_total_soap = calculator.compute(structures)
-        R_total_soap.keys_to_samples("species_center")
-        R_total_soap.keys_to_properties(["species_neighbor_1", "species_neighbor_2"])
+        R_total_soap = R_total_soap.keys_to_samples("center_type")
+        R_total_soap = R_total_soap.keys_to_properties(["neighbor_1_type", "neighbor_2_type"])
 
         atomic_soap = []
         for structure_i in range(n_structures):
-            a_i = R_total_soap.block(0).samples["structure"] == structure_i
+            a_i = R_total_soap.block(0).samples["system"] == structure_i
             atomic_soap.append(torch.tensor(R_total_soap.block(0).values[a_i, :]))
 
         if (torch.sum(n_atoms - n_atoms[0])):
             structure_soap = np.array(atomic_soap, dtype = 'object')
-            torch.save(structure_soap, f"{output_directory}/data/structural_soap.pt")
+            with open(f"{output_directory}/data/structural_soap.pt", 'wb') as f:
+                np.save(f, structure_soap)
+
         else:
             structure_soap = torch.stack(atomic_soap)
             torch.save(structure_soap, f"{output_directory}/data/structural_soap.pt")
-
-        
-
 
     try:
         os.mkdir(f"{output_directory}/model")
@@ -221,7 +211,7 @@ def main():
         atomic_soap = structure_soap.reshape(-1, structure_soap.shape[-1])
         soap_train = structure_soap[train_index].reshape(-1, structure_soap.shape[-1]).float()
 
-    
+
     train_features = AtomicDataset(soap_train, n_atoms[train_index])
     full_atomstructure_index = generate_atomstructure_index(n_atoms)
 
@@ -258,10 +248,10 @@ def main():
     best_val_loss = torch.tensor(100.0)
 
     if scheduler_saved & optimizer_saved & model_saved & parameters_saved:
-        opt.load_state_dict(torch.load(optimizer_state_path))
-        model.load_state_dict(torch.load(final_state_path))
-        scheduler.load_state_dict(torch.load(scheduler_state_path))
-        best_train_loss, best_val_loss = torch.load(parameter_state_path)
+        opt.load_state_dict(torch.load(optimizer_state_path, weights_only = True))
+        model.load_state_dict(torch.load(final_state_path, weights_only = True))
+        scheduler.load_state_dict(torch.load(scheduler_state_path, weights_only = True))
+        best_train_loss, best_val_loss = torch.load(parameter_state_path, weights_only = True)
 
     for epoch in range(n_epochs):
         for x_data, idx, index in traindata_loader:
@@ -281,7 +271,7 @@ def main():
                 return pred_loss
             opt.step(closure)
         with torch.no_grad():
-            model.eval() 
+            model.eval()
             all_pred = model.forward(atomic_soap.float())
             structure_results = torch.zeros([n_structures, n_outputs])
             structure_results = structure_results.index_add_(0, full_atomstructure_index, all_pred)/(n_atoms).view(-1,1)
@@ -296,11 +286,11 @@ def main():
 
             if train_loss < best_train_loss:
                 best_train_loss = train_loss
-                
+
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
                 best_state = copy.deepcopy(model.state_dict())
-                
+
             scheduler.step(val_loss)
 
             if epoch % 100 == 0:

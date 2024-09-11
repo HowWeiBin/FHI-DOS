@@ -1,9 +1,13 @@
+PATH_HYPERS:
+  FHI_OUTPUTS_PATH: ../FHI-outputs/ #Path to the directory containing FHI outputs
+  MODEL_OUTPUT_PATH: ./ #Path to the directory where the code will store model and relevant checkpoint files in MODEL_OUTPUT_PATH/model and processed data in MODEL_OUTPUT_PATH/data
+
 DOS_HYPERS: # Hyperparameters for the construction of the electronic density of states
   SMEARING: 0.3 # Gaussian Smearing Value (eV)
   GRID_INTERVAL: 0.05 # Prediction Energy Grid Interval (eV)
   MIN_ENERGY: -15.0 # Minimum Prediction Energy Grid Value (eV)
   MAX_ENERGY: 3.0 # Maximum Prediction Energy Grid Value (eV)
-  SPLINE_MAX_ENERGY: 1.0 # Maximum Spline Energy Grid Value (eV), most relevant when using an Adaptive energy reference during training
+  SPLINE_MAX_ENERGY: 6.0 # Maximum Spline Energy Grid Value (eV), most relevant when using an Adaptive energy reference during training
   REFERENCE: FERMI # Energy Reference [FERMI or HARTREE]
 
 SOAP_HYPERS: # Uses Rascaline SoapPowerSpectrum
@@ -12,8 +16,8 @@ SOAP_HYPERS: # Uses Rascaline SoapPowerSpectrum
   MAX_ANGULAR: 9 # Number of spherical harmonics to use
   ATOMIC_GAUSSIAN_WIDTH: 0.45 # Width of the atom-centered gaussian creating the atomic density
   CENTER_ATOM_WEIGHT: 1.0 # Weight of the central atom contribution to the features
-  RADIAL_BASIS: {Gto: {}} # Radial Basis Functions used
-  CUTOFF_FUNCTION: {Step: {}} # Smoothing cutoff function
+  RADIAL_BASIS: {Gto: {}} # Type of Radial Basis Functions used
+  CUTOFF_FUNCTION: {Step: {}} # Type of Smoothing cutoff function
   RADIAL_SCALING: {Willatt2018: {exponent: 5, rate: 1, scale: 3.0}} # Radial scaling of the atomic density around an atom
 
 ARCHITECTURAL_HYPERS: # Sequential Model
@@ -23,9 +27,9 @@ ARCHITECTURAL_HYPERS: # Sequential Model
 TRAINING_HYPERS: # Hyperparameters specific to training
   LEARNING_RATE: 0.001 # Initial Learning Rate
   BATCH_SIZE: 4 # Batch Size
-  LR_DECAY: 0.1 # Learning rate decay, after a certain number of epochs (Patience) where the performance on the validation set does not improve
+  LR_DECAY: 0.1 # Learning rate decay, after a certain number of epochs (Patience) where the performance on the validation set does not improve, the learning rate will be decreased by this factor
   MIN_LR: 0.00001 # Minimum Learning Rate before training stops
-  PATIENCE: 200 # Number of epochs before the learning rate decay
+  PATIENCE: 200 # Number of epochs where the validation error does not improve before the learning rate decays
   MAX_EPOCHS: 1000 # Maximum number of epochs 
 
 
