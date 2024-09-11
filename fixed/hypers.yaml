@@ -7,7 +7,7 @@ DOS_HYPERS: # Hyperparameters for the construction of the electronic density of 
   GRID_INTERVAL: 0.05 # Prediction Energy Grid Interval (eV)
   MIN_ENERGY: -15.0 # Minimum Prediction Energy Grid Value (eV)
   MAX_ENERGY: 3.0 # Maximum Prediction Energy Grid Value (eV)
-  SPLINE_MAX_ENERGY: 6.0 # Maximum Spline Energy Grid Value (eV), most relevant when using an Adaptive energy reference during training
+  SPLINE_MAX_ENERGY: 4.0 # Maximum Spline Energy Grid Value (eV), most relevant when using an Adaptive energy reference during training
   REFERENCE: FERMI # Energy Reference [FERMI or HARTREE]
 
 SOAP_HYPERS: # Uses Rascaline SoapPowerSpectrum

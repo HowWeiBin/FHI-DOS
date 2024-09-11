@@ -19,10 +19,9 @@ def main():
             "inference_structure_path",
             help="Path to inference structures .xyz file"
         )
-    
+    args = parser.parse_args()
     with open(args.hypers_path, "r") as f:
         TOTAL_HYPERS = yaml.safe_load(f)
-    args = parser.parse_args()
     structures = ase.io.read(f'{args.inference_structure_path}', ":")
     n_structures = len(structures)
     n_atoms = torch.tensor([len(i) for i in structures])

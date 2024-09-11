@@ -231,8 +231,9 @@ def main():
     #Check if checkpoint exists:
     scheduler_saved = os.path.exists(scheduler_state_path)
     optimizer_saved = os.path.exists(optimizer_state_path)
-    model_saved = os.path.exists(final_state_path)
+    model_saved = os.path.exists(state_path)
     parameters_saved = os.path.exists(parameter_state_path)
+    best_state_saved = os.path.exists(final_state_path)
 
     lr = TOTAL_HYPERS['TRAINING_HYPERS']['LEARNING_RATE']
     n_epochs = TOTAL_HYPERS['TRAINING_HYPERS']['MAX_EPOCHS']
@@ -247,10 +248,11 @@ def main():
     best_train_loss = torch.tensor(100.0)
     best_val_loss = torch.tensor(100.0)
 
-    if scheduler_saved & optimizer_saved & model_saved & parameters_saved:
+    if scheduler_saved & optimizer_saved & model_saved & parameters_saved & best_state_saved:
         opt.load_state_dict(torch.load(optimizer_state_path, weights_only = True))
-        model.load_state_dict(torch.load(final_state_path, weights_only = True))
+        model.load_state_dict(torch.load(state_path, weights_only = True))
         scheduler.load_state_dict(torch.load(scheduler_state_path, weights_only = True))
+        best_state = torch.load(final_state_path, weights_only = True)
         best_train_loss, best_val_loss = torch.load(parameter_state_path, weights_only = True)
 
     for epoch in range(n_epochs):
@@ -293,7 +295,7 @@ def main():
 
             scheduler.step(val_loss)
 
-            if epoch % 100 == 0:
+            if (epoch % 100 == 0) or (epoch == n_epochs-1) :
                 print (f"Epoch {epoch}: Current loss (Train, Val): {train_loss.item():.4}, {val_loss.item():.4}"
                     f", Best loss (Train, Val): {best_train_loss.item():.4}, {best_val_loss.item():.4}, Learning rate: {scheduler.get_last_lr()}")
 
@@ -304,7 +306,7 @@ def main():
                 torch.save(best_state, final_state_path)
 
     print("--- Time Elapsed: %s seconds---" % (time.time() - start_time))
-    torch.save(model.state_dict(), final_state_path)
+    torch.save(best_state, final_state_path)
 
 if __name__ == "__main__":
     main()
